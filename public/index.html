@@ -208,6 +208,15 @@
                         </div>
                     </div>
 
+                    <!-- Banned Users List -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Banned Users</label>
+                        <div id="banned-users-list" class="mt-2 p-2 h-32 overflow-y-auto bg-gray-100 dark:bg-gray-700 rounded-md text-gray-700 dark:text-gray-300 text-sm space-y-2">
+                            <!-- Banned users will be dynamically added here -->
+                            <p>No banned users.</p>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -264,6 +273,7 @@
         const adminAddWordBtn = document.getElementById('admin-add-word-btn');
         const adminRemoveWordBtn = document.getElementById('admin-remove-word-btn');
         const bannedWordsList = document.getElementById('banned-words-list');
+        const bannedUsersList = document.getElementById('banned-users-list');
         
         // --- Banned Overlay ---
         const bannedOverlay = document.getElementById('banned-overlay');
@@ -396,6 +406,39 @@
             });
         }
 
+        /**
+         * Updates the list of banned users in the admin panel.
+         * @param {Array<object>} users Array of user objects ({ip, username, banDate}).
+         */
+        function updateBannedUserList(users) {
+            bannedUsersList.innerHTML = ''; // Clear the list
+            if (users.length === 0) {
+                bannedUsersList.innerHTML = '<p>No banned users.</p>';
+                return;
+            }
+
+            users.forEach(user => {
+                const userEl = document.createElement('div');
+                userEl.classList.add('flex', 'justify-between', 'items-center', 'p-2', 'bg-gray-200', 'dark:bg-gray-600', 'rounded');
+                
+                const userInfo = document.createElement('span');
+                userInfo.textContent = `${user.username} (IP: ${user.ip})`;
+                
+                const unbanBtn = document.createElement('button');
+                unbanBtn.textContent = 'Unban';
+                unbanBtn.classList.add('bg-green-600', 'text-white', 'px-2', 'py-1', 'text-xs', 'rounded', 'hover:bg-green-700');
+                
+                // Add click listener to send unban message
+                unbanBtn.addEventListener('click', () => {
+                    sendSocketMessage({ type: 'adminUnban', ip: user.ip });
+                });
+
+                userEl.appendChild(userInfo);
+                userEl.appendChild(unbanBtn);
+                bannedUsersList.appendChild(userEl);
+            });
+        }
+
 
         // --- WebSocket Event Handlers ---
 
@@ -429,6 +472,10 @@
                 case 'bannedWordList':
                     // Received an updated list of banned words
                     updateBannedWordList(data.words);
+                    break;
+                case 'bannedUserList':
+                    // Received an updated list of banned users
+                    updateBannedUserList(data.users);
                     break;
             }
         };
