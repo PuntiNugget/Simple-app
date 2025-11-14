@@ -48,6 +48,17 @@
         .toggle-checkbox:checked + .toggle-label .toggle-ball {
             transform: translateX(1.25rem); /* 20px */
         }
+
+        /* Custom styles for system messages */
+        .system-message {
+            @apply text-center text-sm italic text-gray-500 dark:text-gray-400 my-2;
+        }
+
+        /* Banned message overlay */
+        #banned-overlay {
+            display: none; /* Hidden by default */
+            @apply fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50 text-white text-center p-4;
+        }
     </style>
 </head>
 <!-- 
@@ -56,23 +67,29 @@
 -->
 <body class="font-sans h-full flex items-center justify-center transition-colors duration-300 bg-gray-100 dark:bg-gray-900">
 
-    <div class="flex flex-col h-[90vh] w-full max-w-2xl bg-white dark:bg-gray-800 shadow-2xl rounded-lg overflow-hidden">
+    <div id="chat-container" class="flex flex-col h-[90vh] w-full max-w-2xl bg-white dark:bg-gray-800 shadow-2xl rounded-lg overflow-hidden">
         <!-- Header -->
         <header class="bg-blue-600 dark:bg-blue-700 text-white p-4 flex justify-between items-center">
-            <h1 class="text-2xl font-bold">Node.js + WebSocket Chat</h1>
-            <!-- Settings Button (Gear Icon) -->
-            <button id="open-settings-btn" class="p-2 rounded-full hover:bg-blue-500 dark:hover:bg-blue-600 transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.096 2.573-1.066z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                </svg>
-            </button>
+            <h1 class="text-2xl font-bold">Node.js Chat</h1>
+            <div class="flex space-x-2">
+                <!-- Admin Button -->
+                <button id="open-admin-btn" class="p-2 rounded-full hover:bg-blue-500 dark:hover:bg-blue-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                </button>
+                <!-- Settings Button (Gear Icon) -->
+                <button id="open-settings-btn" class="p-2 rounded-full hover:bg-blue-500 dark:hover:bg-blue-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.096 2.573-1.066z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </button>
+            </div>
         </header>
 
         <!-- Chat Messages -->
-        <main id="chat-messages" class="flex-1 p-4 space-y-3 overflow-y-auto bg-gray-50 dark:bg-gray-700">
+        <main id="chat-messages" class="flex-1 p-4 flex flex-col space-y-3 overflow-y-auto bg-gray-50 dark:bg-gray-700">
             <!-- Messages will be dynamically injected here -->
-            <div class="p-2 bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200 rounded-lg text-sm">
+            <div class="system-message">
                 Connecting to chat server...
             </div>
         </main>
@@ -101,23 +118,16 @@
 
     <!-- Settings Modal (Initially Hidden) -->
     <div id="settings-modal" class="fixed inset-0 z-10 overflow-y-auto hidden">
-        <!-- Overlay -->
         <div id="settings-overlay" class="fixed inset-0 bg-black bg-opacity-50"></div>
-
-        <!-- Modal Panel -->
         <div class="relative bg-white dark:bg-gray-800 w-full max-w-md mx-auto my-20 p-6 rounded-lg shadow-xl z-20">
-            <!-- Modal Header -->
-            <div class="flex justify-between items-center mb-4">
+            <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">Settings</h2>
                 <button id="close-settings-btn" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
-
             <!-- Modal Body -->
-            <div class="space-y-4">
+            <div class="space-y-6">
                 <!-- Dark Mode Toggle -->
                 <div class="flex items-center justify-between">
                     <span class="text-gray-700 dark:text-gray-300">Dark Mode</span>
@@ -128,10 +138,90 @@
                         </div>
                     </label>
                 </div>
-                
-                <!-- More settings can be added here -->
-
+                <!-- Set Name -->
+                <div class="space-y-2">
+                    <label for="name-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Your Name</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="name-input" placeholder="Enter your name" class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:placeholder-gray-400">
+                        <button id="save-name-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-blue-700 transition-colors">Save</button>
+                    </div>
+                </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Admin Modal (Initially Hidden) -->
+    <div id="admin-modal" class="fixed inset-0 z-10 overflow-y-auto hidden">
+        <div id="admin-overlay" class="fixed inset-0 bg-black bg-opacity-50"></div>
+        <div class="relative bg-white dark:bg-gray-800 w-full max-w-md mx-auto my-20 p-6 rounded-lg shadow-xl z-20">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">Admin Panel</h2>
+                <button id="close-admin-btn" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <!-- Modal Body -->
+            <div class="space-y-4">
+                <!-- Login View -->
+                <div id="admin-login-view" class="space-y-4">
+                    <label for="admin-password-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Admin Password</label>
+                    <div class="flex space-x-2">
+                        <input type="password" id="admin-password-input" class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button id="admin-login-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-blue-700 transition-colors">Login</button>
+                    </div>
+                </div>
+                
+                <!-- Admin Controls View (Initially hidden) -->
+                <div id="admin-controls-view" class="hidden space-y-6">
+                    <p class="text-green-600 dark:text-green-400">Admin login successful.</p>
+                    
+                    <!-- Broadcast -->
+                    <div>
+                        <label for="admin-broadcast-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">System Broadcast</label>
+                        <div class="flex space-x-2 mt-1">
+                            <input type="text" id="admin-broadcast-input" placeholder="Message to all users" class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button id="admin-broadcast-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-blue-700 transition-colors">Send</button>
+                        </div>
+                    </div>
+
+                    <!-- User Moderation -->
+                    <div>
+                        <label for="admin-username-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Moderate User</label>
+                        <input type="text" id="admin-username-input" placeholder="Enter username (case-insensitive)" class="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <div class="flex space-x-2 mt-2">
+                            <button id="admin-warn-btn" class="flex-1 bg-yellow-500 text-white px-4 py-2 rounded-md font-semibold hover:bg-yellow-600 transition-colors">Warn</button>
+                            <button id="admin-mute-btn" class="flex-1 bg-orange-500 text-white px-4 py-2 rounded-md font-semibold hover:bg-orange-600 transition-colors">Mute (5m)</button>
+                            <button id="admin-ban-btn" class="flex-1 bg-red-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-red-700 transition-colors">Ban</button>
+                        </div>
+                    </div>
+
+                    <!-- Word Filter -->
+                    <div>
+                        <label for="admin-word-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Manage Banned Words</label>
+                        <div class="flex space-x-2 mt-1">
+                            <input type="text" id="admin-word-input" placeholder="Add/Remove a word" class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button id="admin-add-word-btn" class="bg-green-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-green-700 transition-colors">Add</button>
+                            <button id="admin-remove-word-btn" class="bg-red-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-red-700 transition-colors">Del</button>
+                        </div>
+                        <div id="banned-words-list" class="mt-2 p-2 h-24 overflow-y-auto bg-gray-100 dark:bg-gray-700 rounded-md text-gray-700 dark:text-gray-300 text-sm">
+                            Banned words will appear here...
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Banned Message Overlay -->
+    <div id="banned-overlay">
+        <div class="flex flex-col items-center">
+            <svg class="w-16 h-16 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+            <h2 class="text-3xl font-bold mt-4">You have been banned.</h2>
+            <p class="mt-2 text-lg text-gray-300">You are not permitted to access this chat.</p>
+            <a id="unban-link" href="#" target="_blank" rel="noopener noreferrer" class="mt-6 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                Submit an Unban Appeal
+            </a>
         </div>
     </div>
 
@@ -139,6 +229,7 @@
     <!-- Client-side JavaScript -->
     <script>
         // --- DOM Elements ---
+        const chatContainer = document.getElementById('chat-container');
         const chatMessages = document.getElementById('chat-messages');
         const messageForm = document.getElementById('message-form');
         const messageInput = document.getElementById('message-input');
@@ -149,14 +240,40 @@
         const settingsOverlay = document.getElementById('settings-overlay');
         const openSettingsBtn = document.getElementById('open-settings-btn');
         const closeSettingsBtn = document.getElementById('close-settings-btn');
+        const nameInput = document.getElementById('name-input');
+        const saveNameBtn = document.getElementById('save-name-btn');
         
+        // --- Admin Modal Elements ---
+        const adminModal = document.getElementById('admin-modal');
+        const adminOverlay = document.getElementById('admin-overlay');
+        const openAdminBtn = document.getElementById('open-admin-btn');
+        const closeAdminBtn = document.getElementById('close-admin-btn');
+        const adminLoginView = document.getElementById('admin-login-view');
+        const adminPasswordInput = document.getElementById('admin-password-input');
+        const adminLoginBtn = document.getElementById('admin-login-btn');
+        
+        // --- Admin Controls ---
+        const adminControlsView = document.getElementById('admin-controls-view');
+        const adminBroadcastInput = document.getElementById('admin-broadcast-input');
+        const adminBroadcastBtn = document.getElementById('admin-broadcast-btn');
+        const adminUsernameInput = document.getElementById('admin-username-input');
+        const adminWarnBtn = document.getElementById('admin-warn-btn');
+        const adminMuteBtn = document.getElementById('admin-mute-btn');
+        const adminBanBtn = document.getElementById('admin-ban-btn');
+        const adminWordInput = document.getElementById('admin-word-input');
+        const adminAddWordBtn = document.getElementById('admin-add-word-btn');
+        const adminRemoveWordBtn = document.getElementById('admin-remove-word-btn');
+        const bannedWordsList = document.getElementById('banned-words-list');
+        
+        // --- Banned Overlay ---
+        const bannedOverlay = document.getElementById('banned-overlay');
+        const unbanLink = document.getElementById('unban-link');
+
         // --- Dark Mode Elements ---
         const darkModeToggle = document.getElementById('dark-mode-toggle');
         const htmlElement = document.documentElement; // The <html> tag
 
         // --- Dark Mode Logic ---
-
-        // 1. Check local storage on page load
         if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             htmlElement.classList.add('dark');
             darkModeToggle.checked = true;
@@ -165,7 +282,6 @@
             darkModeToggle.checked = false;
         }
 
-        // 2. Add event listener to toggle
         darkModeToggle.addEventListener('change', () => {
             if (darkModeToggle.checked) {
                 htmlElement.classList.add('dark');
@@ -177,94 +293,252 @@
         });
 
         // --- Settings Modal Logic ---
-        function openModal() {
-            settingsModal.classList.remove('hidden');
-        }
-        function closeModal() {
-            settingsModal.classList.add('hidden');
-        }
+        function openSettingsModal() { settingsModal.classList.remove('hidden'); }
+        function closeSettingsModal() { settingsModal.classList.add('hidden'); }
+        openSettingsBtn.addEventListener('click', openSettingsModal);
+        closeSettingsBtn.addEventListener('click', closeSettingsModal);
+        settingsOverlay.addEventListener('click', closeSettingsModal);
 
-        openSettingsBtn.addEventListener('click', openModal);
-        closeSettingsBtn.addEventListener('click', closeModal);
-        settingsOverlay.addEventListener('click', closeModal);
+        // --- Admin Modal Logic ---
+        function openAdminModal() { adminModal.classList.remove('hidden'); }
+        function closeAdminModal() { adminModal.classList.add('hidden'); }
+        openAdminBtn.addEventListener('click', openAdminModal);
+        closeAdminBtn.addEventListener('click', closeAdminModal);
+        adminOverlay.addEventListener('click', closeAdminModal);
 
-
-        // --- WebSocket Connection ---
         
-        // Determine the WebSocket protocol. 'ws://' for http, 'wss://' for https
+        // --- WebSocket Connection ---
         const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-        // Connect to the WebSocket server at the same host and port
         const ws = new WebSocket(wsProtocol + window.location.host);
+        
+        /**
+         * Sends a structured JSON message to the WebSocket server.
+         * @param {object} data The data object to send.
+         */
+        function sendSocketMessage(data) {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(data));
+            }
+        }
 
-        // --- Helper Function ---
-        function displayMessage(message, isMe = false) {
-            const messageElement = document.createElement('div');
-            messageElement.textContent = message;
+        // --- Helper Functions to display messages ---
+
+        /**
+         * Displays a standard chat message.
+         * @param {string} name The name of the sender.
+         * @param {string} text The message text.
+         * @param {boolean} isMe True if the message is from this client.
+         */
+        function displayMessage(name, text, isMe = false) {
+            const messageWrapper = document.createElement('div');
+            messageWrapper.classList.add('flex', 'flex-col');
+
+            const nameElement = document.createElement('strong');
+            nameElement.classList.add('text-sm', 'text-gray-600', 'dark:text-gray-400');
             
-            // Style the message
-            messageElement.classList.add('p-2', 'rounded-lg', 'max-w-xs', 'break-words');
+            const messageElement = document.createElement('div');
+            messageElement.textContent = text;
+            messageElement.classList.add('p-2', 'rounded-lg', 'max-w-xs', 'break-words', 'mt-1');
             
             if (isMe) {
-                // My messages (sent from this client)
-                // Note: We don't need dark mode classes here, blue-500 works on both.
-                messageElement.classList.add('bg-blue-500', 'text-white', 'self-end', 'ml-auto');
+                nameElement.textContent = 'You';
+                messageWrapper.classList.add('self-end', 'items-end');
+                messageElement.classList.add('bg-blue-500', 'text-white', 'ml-auto');
             } else {
-                // Others' messages (received from server)
-                // We update this to support dark mode
-                messageElement.classList.add('bg-gray-200', 'text-gray-800', 'dark:bg-gray-600', 'dark:text-gray-200', 'self-start');
+                nameElement.textContent = name;
+                messageWrapper.classList.add('self-start', 'items-start');
+                messageElement.classList.add('bg-gray-200', 'text-gray-800', 'dark:bg-gray-600', 'dark:text-gray-200');
             }
 
-            chatMessages.appendChild(messageElement);
-            // Auto-scroll to the bottom
+            messageWrapper.appendChild(nameElement);
+            messageWrapper.appendChild(messageElement);
+            chatMessages.appendChild(messageWrapper);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
+
+        /**
+         * Displays a system-level message (e.g., user join/leave).
+         * @param {string} text The message text.
+         */
+        function displaySystemMessage(text) {
+            const messageElement = document.createElement('div');
+            messageElement.textContent = text;
+            messageElement.classList.add('system-message'); // Uses custom style
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        /**
+         * Shows the banned overlay.
+         * @param {string} link The unban appeal URL.
+         */
+        function showBannedScreen(link) {
+            unbanLink.href = link;
+            chatContainer.style.display = 'none'; // Hide the chat
+            bannedOverlay.style.display = 'flex'; // Show the ban message
+        }
+
+        /**
+         * Updates the list of banned words in the admin panel.
+         * @param {string[]} words Array of banned words.
+         */
+        function updateBannedWordList(words) {
+            if (words.length === 0) {
+                bannedWordsList.textContent = 'No banned words yet.';
+                return;
+            }
+            bannedWordsList.innerHTML = '';
+            words.forEach(word => {
+                const wordEl = document.createElement('span');
+                wordEl.textContent = word;
+                wordEl.classList.add('inline-block', 'bg-gray-200', 'dark:bg-gray-600', 'rounded-full', 'px-2', 'py-1', 'text-xs', 'mr-1', 'mb-1');
+                bannedWordsList.appendChild(wordEl);
+            });
+        }
+
 
         // --- WebSocket Event Handlers ---
 
         ws.onopen = () => {
             console.log('Connected to WebSocket server');
-            // Clear the "connecting" message
-            chatMessages.innerHTML = ''; 
-            displayMessage('You are connected!', false);
+            chatMessages.innerHTML = ''; // Clear "Connecting..."
         };
 
         ws.onmessage = (event) => {
-            // When a message is received from the server, display it
-            console.log('Message from server:', event.data);
-            displayMessage(event.data, false);
+            const data = JSON.parse(event.data);
+            console.log('Message from server:', data);
+
+            switch (data.type) {
+                case 'message':
+                    displayMessage(data.name, data.text, false);
+                    break;
+                case 'system':
+                    displaySystemMessage(data.text);
+                    break;
+                case 'adminSuccess':
+                    // Admin login was good!
+                    displaySystemMessage('Admin login successful.');
+                    adminLoginView.classList.add('hidden');
+                    adminControlsView.classList.remove('hidden');
+                    break;
+                case 'banned':
+                    // This client is banned!
+                    showBannedScreen(data.link);
+                    ws.close(); // Close the connection
+                    break;
+                case 'bannedWordList':
+                    // Received an updated list of banned words
+                    updateBannedWordList(data.words);
+                    break;
+            }
         };
 
         ws.onclose = () => {
             console.log('Disconnected from WebSocket server');
-            displayMessage('You have been disconnected.', false);
-            sendButton.disabled = true;
-            messageInput.disabled = true;
+            // Don't show disconnected message if they were banned
+            if (bannedOverlay.style.display !== 'flex') {
+                displaySystemMessage('You have been disconnected. Please refresh the page to reconnect.');
+                sendButton.disabled = true;
+                messageInput.disabled = true;
+            }
         };
 
         ws.onerror = (error) => {
             console.error('WebSocket Error:', error);
-            displayMessage('Connection error.', false);
+            displaySystemMessage('A connection error occurred.');
         };
 
-        // --- Form Submission Handler ---
+        // --- Form Submission Handlers ---
+        
+        // Handle sending a regular chat message
         messageForm.addEventListener('submit', (event) => {
-            // Prevent the default form submission (which reloads the page)
             event.preventDefault();
-
             const message = messageInput.value;
+            if (!message) return;
 
-            if (message && ws.readyState === WebSocket.OPEN) {
-                // Send the message to the WebSocket server
-                ws.send(message);
-                
-                // We'll let the server broadcast it back to us
-                // This confirms the message was sent and received by the server
-                // displayMessage(message, true); // Optionally, display it immediately
+            // Send the message as a JSON object
+            sendSocketMessage({
+                type: 'message',
+                text: message
+            });
+            
+            // Display my own message immediately
+            displayMessage('You', message, true);
 
-                // Clear the input field
-                messageInput.value = '';
-            }
+            messageInput.value = ''; // Clear the input
         });
+
+        // Handle saving the user's name
+        saveNameBtn.addEventListener('click', () => {
+            const name = nameInput.value;
+            if (!name) return;
+
+            sendSocketMessage({
+                type: 'setName',
+                name: name
+            });
+            
+            // Close the modal after saving
+            closeSettingsModal();
+        });
+
+        // Handle admin login
+        adminLoginBtn.addEventListener('click', () => {
+            const password = adminPasswordInput.value;
+            if (!password) return;
+
+            sendSocketMessage({
+                type: 'adminLogin',
+                password: password
+            });
+            adminPasswordInput.value = ''; // Clear password
+        });
+        
+        // Handle sending an admin broadcast
+        adminBroadcastBtn.addEventListener('click', () => {
+            const message = adminBroadcastInput.value;
+            if (!message) return;
+            sendSocketMessage({ type: 'adminBroadcast', text: message });
+            adminBroadcastInput.value = ''; // Clear input
+        });
+        
+        // --- New Admin Action Handlers ---
+
+        adminWarnBtn.addEventListener('click', () => {
+            const name = adminUsernameInput.value;
+            if (!name) return;
+            sendSocketMessage({ type: 'adminWarn', name: name });
+            adminUsernameInput.value = '';
+        });
+
+        adminMuteBtn.addEventListener('click', () => {
+            const name = adminUsernameInput.value;
+            if (!name) return;
+            sendSocketMessage({ type: 'adminMute', name: name });
+            adminUsernameInput.value = '';
+        });
+
+        adminBanBtn.addEventListener('click', () => {
+            const name = adminUsernameInput.value;
+            if (!name) return;
+            sendSocketMessage({ type: 'adminBan', name: name });
+            adminUsernameInput.value = '';
+        });
+        
+        adminAddWordBtn.addEventListener('click', () => {
+            const word = adminWordInput.value;
+            if (!word) return;
+            sendSocketMessage({ type: 'adminAddWord', word: word });
+            adminWordInput.value = '';
+        });
+        
+        adminRemoveWordBtn.addEventListener('click', () => {
+            const word = adminWordInput.value;
+            if (!word) return;
+            sendSocketMessage({ type: 'adminRemoveWord', word: word });
+            adminWordInput.value = '';
+        });
+
 
     </script>
 </body>
