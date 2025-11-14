@@ -57,7 +57,7 @@ wss.on('connection', (ws) => {
 // Serve the 'index.html' file when someone visits the root URL
 app.get('/', (req, res) => {
     // Send the index.html file
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
 // Start the HTTP server
