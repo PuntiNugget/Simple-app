@@ -18,7 +18,7 @@ const UNBAN_LINK = 'https://forms.gle/cHmhaYYk1eAdFvpJA';
 
 // --- Moderation State (in-memory) ---
 // In a real app, you might store these in a database
-const bannedIPs = new Set();
+const bannedUsers = new Map(); // Stores ip -> { username, banDate }
 const bannedWords = new Set(['examplebadword1', 'examplebadword2']);
 const mutedUsers = new Map(); // Stores ws.id -> timeoutID
 const warningCounts = new Map(); // Stores ws.id -> count
@@ -84,6 +84,29 @@ function broadcastBannedWordList() {
     });
 }
 
+/**
+ * Sends a list of all currently banned users to all admins.
+ */
+function broadcastBannedUserList() {
+    // Convert map to an array for JSON serialization
+    const userList = Array.from(bannedUsers.entries()).map(([ip, data]) => ({
+        ip,
+        username: data.username,
+        banDate: data.banDate
+    }));
+
+    const message = JSON.stringify({
+        type: 'bannedUserList',
+        users: userList
+    });
+
+    wss.clients.forEach((client) => {
+        if (client.isAdmin && client.readyState === client.OPEN) {
+            client.send(message);
+        }
+    });
+}
+
 // WebSocket connection logic
 // We get 'req' (the HTTP request) here to access the IP address
 wss.on('connection', (ws, req) => {
@@ -93,7 +116,7 @@ wss.on('connection', (ws, req) => {
     const ip = req.headers['x-forwarded-for']?.split(',').shift() || req.socket.remoteAddress;
     
     // --- IP Ban Check ---
-    if (bannedIPs.has(ip)) {
+    if (bannedUsers.has(ip)) {
         console.log(`Banned IP ${ip} tried to connect.`);
         // Send the ban message with the link, then close
         ws.send(JSON.stringify({
@@ -136,29 +159,6 @@ wss.on('connection', (ws, req) => {
             return;
         }
 
-        // --- Mute Check ---
-        if (mutedUsers.has(ws.id) && data.type !== 'adminLogin') {
-            ws.send(JSON.stringify({
-                type: 'system',
-                text: 'You are currently muted.'
-            }));
-            return;
-        }
-        
-        // --- Banned Word Check ---
-        if (data.type === 'message') {
-            const lowerCaseMessage = data.text.toLowerCase();
-            for (const word of bannedWords) {
-                if (lowerCaseMessage.includes(word)) {
-                    ws.send(JSON.stringify({
-                        type: 'system',
-                        text: 'Your message was blocked for containing a banned word.'
-                    }));
-                    return; // Stop processing the message
-                }
-            }
-        }
-
         // Use a switch to handle different message types
         switch (data.type) {
             case 'message':
@@ -193,6 +193,8 @@ wss.on('connection', (ws, req) => {
                         type: 'bannedWordList',
                         words: Array.from(bannedWords)
                     }));
+                    // Send them the current list of banned users
+                    broadcastBannedUserList();
                 } else {
                     console.log(`User ${ws.username} failed admin login.`);
                     ws.send(JSON.stringify({ type: 'system', text: 'Admin login failed.' }));
@@ -252,7 +254,11 @@ wss.on('connection', (ws, req) => {
                 if (ws.isAdmin) {
                     const clientToBan = findClientByName(data.name);
                     if (clientToBan) {
-                        bannedIPs.add(clientToBan.ip); // Ban their IP
+                        // Ban their IP and store their username
+                        bannedUsers.set(clientToBan.ip, { 
+                            username: clientToBan.username, 
+                            banDate: Date.now() 
+                        });
                         console.log(`Banning user ${clientToBan.username} with IP ${clientToBan.ip}`);
                         
                         broadcast({
@@ -262,8 +268,28 @@ wss.on('connection', (ws, req) => {
                         
                         clientToBan.send(JSON.stringify({ type: 'banned', link: UNBAN_LINK }));
                         clientToBan.close();
+                        broadcastBannedUserList(); // Update all admins
                     } else {
                         ws.send(JSON.stringify({ type: 'system', text: `User '${data.name}' not found.`}));
+                    }
+                }
+                break;
+
+            case 'adminUnban':
+                if (ws.isAdmin) {
+                    const ipToUnban = data.ip;
+                    if (bannedUsers.has(ipToUnban)) {
+                        const unbannedUser = bannedUsers.get(ipToUnban);
+                        bannedUsers.delete(ipToUnban);
+                        console.log(`Unbanning user ${unbannedUser.username} with IP ${ipToUnban}`);
+                        
+                        broadcast({
+                            type: 'system',
+                            text: `${unbannedUser.username} (IP: ${ipToUnban}) has been unbanned.`
+                        });
+                        broadcastBannedUserList(); // Update all admins
+                    } else {
+                        ws.send(JSON.stringify({ type: 'system', text: `IP '${ipToUnban}' not found in ban list.`}));
                     }
                 }
                 break;
