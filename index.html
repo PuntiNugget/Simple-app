@@ -60,7 +60,7 @@
 
         /* Tab button styles */
         .tab-btn {
-            @apply flex-1 py-2 px-4 text-center font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600;
+            @apply py-3 px-6 text-center font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-300;
         }
         .tab-btn.active {
             @apply text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400;
@@ -70,24 +70,10 @@
 <body class="font-sans h-full flex flex-row transition-colors duration-300 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
 
     <div id="sidebar" class="hidden w-64 h-full bg-white dark:bg-gray-800 shadow-lg flex flex-col border-r border-gray-200 dark:border-gray-700">
-        <div class="flex-1 flex flex-col overflow-y-auto">
-            <nav class="flex border-b border-gray-200 dark:border-gray-700">
-                <button id="chat-tab-btn" class="tab-btn active">Chat</button>
-                <button id="hub-tab-btn" class="tab-btn">Hub</button>
-            </nav>
-
-            <div class="flex-1 p-4 overflow-y-auto">
-                <div id="chat-tab-content">
-                    <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Online Users</h3>
-                    <div id="user-list" class="space-y-2">
-                        <p class="text-sm text-gray-500 dark:text-gray-400 italic">Connecting...</p>
-                    </div>
-                </div>
-
-                <div id="hub-tab-content" class="hidden">
-                    <h2 class="text-xl font-semibold mb-2">Hub</h2>
-                    <p class="text-gray-600 dark:text-gray-400">This area is under construction. 🚧</p>
-                </div>
+        <div class="flex-1 flex flex-col overflow-y-auto p-4">
+            <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Online Users</h3>
+            <div id="user-list" class="space-y-2">
+                <p class="text-sm text-gray-500 dark:text-gray-400 italic">Connecting...</p>
             </div>
         </div>
         
@@ -103,7 +89,7 @@
         </div>
     </div>
 
-    <main class="flex-1 h-full flex items-center justify-center overflow-y-auto">
+    <main id="main-content" class="flex-1 h-full flex flex-col items-center justify-center overflow-y-auto p-4 md:p-8">
         <div id="username-modal" class="bg-white dark:bg-gray-800 w-full max-w-sm p-6 rounded-lg shadow-2xl z-20">
             <h2 class="text-2xl font-bold text-center text-gray-900 dark:text-gray-100 mb-6">Join Chat</h2>
             <div class="space-y-4">
@@ -118,7 +104,12 @@
             </div>
         </div>
 
-        <div id="chat-container" class="hidden flex flex-col h-[90vh] w-full max-w-2xl bg-white dark:bg-gray-800 shadow-2xl rounded-lg overflow-hidden">
+        <nav id="main-tabs" class="hidden flex w-full max-w-2xl border-b border-gray-200 dark:border-gray-700">
+            <button id="chat-tab-btn" class="tab-btn active">Chat</button>
+            <button id="hub-tab-btn" class="tab-btn">Hub</button>
+        </nav>
+        
+        <div id="chat-container" class="hidden flex flex-col h-[90vh] w-full max-w-2xl bg-white dark:bg-gray-800 shadow-xl rounded-b-lg overflow-hidden">
             <header class="bg-blue-600 dark:bg-blue-700 text-white p-4 flex justify-between items-center">
                 <h1 class="text-2xl font-bold">Node.js Chat</h1>
             </header>
@@ -145,6 +136,11 @@
                     </button>
                 </form>
             </footer>
+        </div>
+
+        <div id="hub-main-content" class="hidden w-full max-w-2xl h-[90vh] bg-white dark:bg-gray-800 rounded-b-lg shadow-xl p-6">
+             <h2 class="text-xl font-semibold mb-2">Hub</h2>
+             <p class="text-gray-600 dark:text-gray-400">This area is under construction. 🚧</p>
         </div>
     </main>
     
@@ -250,6 +246,7 @@
     <script>
         // --- DOM Elements ---
         const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('main-content');
         const usernameModal = document.getElementById('username-modal');
         const joinUsernameInput = document.getElementById('join-username-input');
         const joinChatBtn = document.getElementById('join-chat-btn');
@@ -261,17 +258,17 @@
         const messageInput = document.getElementById('message-input');
         const sendButton = document.getElementById('send-button');
 
-        // --- NEW Sidebar Tab Elements ---
+        // --- NEW/MODIFIED Tab Elements ---
+        const mainTabs = document.getElementById('main-tabs');
         const chatTabBtn = document.getElementById('chat-tab-btn');
         const hubTabBtn = document.getElementById('hub-tab-btn');
-        const chatTabContent = document.getElementById('chat-tab-content');
-        const hubTabContent = document.getElementById('hub-tab-content');
+        const hubMainContent = document.getElementById('hub-main-content');
         const userList = document.getElementById('user-list');
 
         // --- Settings Modal Elements ---
         const settingsModal = document.getElementById('settings-modal');
         const settingsOverlay = document.getElementById('settings-overlay');
-        const openSettingsBtn = document.getElementById('open-settings-btn'); // Button is moved
+        const openSettingsBtn = document.getElementById('open-settings-btn');
         const closeSettingsBtn = document.getElementById('close-settings-btn');
         const nameInput = document.getElementById('name-input');
         const saveNameBtn = document.getElementById('save-name-btn');
@@ -279,7 +276,7 @@
         // --- Admin Modal Elements ---
         const adminModal = document.getElementById('admin-modal');
         const adminOverlay = document.getElementById('admin-overlay');
-        const openAdminBtn = document.getElementById('open-admin-btn'); // Button is moved
+        const openAdminBtn = document.getElementById('open-admin-btn');
         const closeAdminBtn = document.getElementById('close-admin-btn');
         const adminLoginView = document.getElementById('admin-login-view');
         const adminPasswordInput = document.getElementById('admin-password-input');
@@ -340,19 +337,21 @@
         closeAdminBtn.addEventListener('click', closeAdminModal);
         adminOverlay.addEventListener('click', closeAdminModal);
 
-        // --- NEW: Tab Switching Logic ---
+        // --- NEW: Main Tab Switching Logic ---
         chatTabBtn.addEventListener('click', () => {
             chatTabBtn.classList.add('active');
             hubTabBtn.classList.remove('active');
-            chatTabContent.classList.remove('hidden');
-            hubTabContent.classList.add('hidden');
+            chatContainer.classList.remove('hidden');
+            chatContainer.classList.add('flex');
+            hubMainContent.classList.add('hidden');
         });
 
         hubTabBtn.addEventListener('click', () => {
             hubTabBtn.classList.add('active');
             chatTabBtn.classList.remove('active');
-            hubTabContent.classList.remove('hidden');
-            chatTabContent.classList.add('hidden');
+            hubMainContent.classList.remove('hidden');
+            chatContainer.classList.add('hidden');
+            chatContainer.classList.remove('flex');
         });
 
         
@@ -423,8 +422,7 @@
          */
         function showBannedScreen(link) {
             unbanLink.href = link;
-            usernameModal.style.display = 'none'; // Hide username modal
-            chatContainer.style.display = 'none'; // Hide the chat
+            mainContent.style.display = 'none'; // Hide the whole main area
             sidebar.style.display = 'none'; // Hide the sidebar
             bannedOverlay.style.display = 'flex'; // Show the ban message
         }
@@ -480,7 +478,7 @@
         }
 
         /**
-         * NEW: Updates the "Online Users" list in the sidebar.
+         * Updates the "Online Users" list in the sidebar.
          * @param {string[]} usernames Array of username strings.
          */
         function updateUserList(usernames) {
@@ -490,7 +488,6 @@
                 return;
             }
             
-            // Sort list alphabetically, case-insensitive
             usernames.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
             
             usernames.forEach(name => {
@@ -516,10 +513,19 @@
                 // MODIFIED: Handle successful join
                 case 'joinSuccess':
                     usernameModal.classList.add('hidden');
+                    sidebar.classList.remove('hidden');
+                    sidebar.classList.add('flex');
+                    
+                    // Show the tab bar and default chat content
+                    mainTabs.classList.remove('hidden');
+                    mainTabs.classList.add('flex');
                     chatContainer.classList.remove('hidden');
                     chatContainer.classList.add('flex');
-                    sidebar.classList.remove('hidden'); // <-- SHOW SIDEBAR
-                    sidebar.classList.add('flex');
+
+                    // Stop centering the content
+                    mainContent.classList.remove('items-center', 'justify-center', 'p-4', 'md:p-8');
+                    mainContent.classList.add('pt-8'); // Add padding to the top
+                    
                     chatMessages.innerHTML = '';
                     displaySystemMessage('Welcome to the chat! ' + data.text);
                     break;
@@ -551,7 +557,6 @@
                     updateBannedUserList(data.users);
                     break;
                 
-                // NEW: Handle user list updates
                 case 'userList':
                     updateUserList(data.users);
                     break;
@@ -637,7 +642,7 @@
             if (!message) return;
             sendSocketMessage({ type: 'adminBroadcast', text: message });
             adminBroadcastInput.value = '';
-F        });
+        });
         
         // --- Admin Action Handlers (Unchanged) ---
 
