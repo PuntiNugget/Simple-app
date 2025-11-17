@@ -197,7 +197,7 @@ wss.on('connection', (ws) => {
                 }
                 break;
 
-            case 'message':
+           case 'message':
                 // Check for mutes
                 if (mutedUsers.has(ws.id)) {
                     ws.send(JSON.stringify({ type: 'system', text: 'You are muted and cannot send messages.' }));
@@ -213,6 +213,14 @@ wss.on('connection', (ws) => {
                     // Optional: increase warning count
                     break;
                 }
+
+                // Broadcast the message
+                broadcast({
+                    type: 'message',
+                    name: ws.username,
+                    text: messageText
+                }, ws); // <-- ADD THE 'ws' ARGUMENT HERE
+                break;
 
                 // Broadcast the message
                 broadcast({
