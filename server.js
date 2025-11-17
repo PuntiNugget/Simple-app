@@ -17,8 +17,8 @@ const ADMIN_PASSWORD = 'admin123';
 const UNBAN_LINK = 'https://forms.gle/cHmhaYYk1eAdFvpJA';
 
 // --- Moderation State (in-memory) ---
-// In a real app, you might store these in a database
-const bannedUsers = new Map(); // Stores ip -> { username, banDate }
+// MODIFIED: Replaced IP-based map with a username-based Set
+const bannedUsernames = new Set(); // Stores lowercase usernames
 const bannedWords = new Set(['examplebadword1', 'examplebadword2']);
 const mutedUsers = new Map(); // Stores ws.id -> timeoutID
 const warningCounts = new Map(); // Stores ws.id -> count
@@ -33,12 +33,23 @@ const wss = new WebSocketServer({ server });
  * @returns {import('ws') | null} The WebSocket client or null if not found.
  */
 function findClientByName(name) {
+    if (!name) return null;
     for (const client of wss.clients) {
-        if (client.username.toLowerCase() === name.toLowerCase()) {
+        // Check if client is logged in and username matches
+        if (client.isLoggedIn && client.username.toLowerCase() === name.toLowerCase()) {
             return client;
         }
     }
     return null;
+}
+
+/**
+ * Checks if a username is already in use by a connected, logged-in client.
+ * @param {string} name The username to check.
+ * @returns {boolean} True if the name is taken, false otherwise.
+ */
+function isUsernameTaken(name) {
+    return !!findClientByName(name);
 }
 
 /**
@@ -48,303 +59,309 @@ function findClientByName(name) {
 function broadcast(messageObject) {
     const messageString = JSON.stringify(messageObject);
     wss.clients.forEach((client) => {
-        // Check if client is still open
-        if (client.readyState === client.OPEN) {
+        // MODIFIED: Only broadcast to logged-in users
+        if (client.readyState === client.OPEN && client.isLoggedIn) {
             client.send(messageString);
         }
     });
 }
 
 /**
- * Broadcasts a JSON message to all clients *except* the sender.
- * @param {import('ws')} senderWs The WebSocket connection of the sender.
+ * Broadcasts a message to all *admin* clients.
  * @param {object} messageObject The object to stringify and send.
  */
-function broadcastToOthers(senderWs, messageObject) {
+function broadcastToAdmins(messageObject) {
     const messageString = JSON.stringify(messageObject);
     wss.clients.forEach((client) => {
-        if (client !== senderWs && client.readyState === client.OPEN) {
+        if (client.readyState === client.OPEN && client.isAdmin) {
             client.send(messageString);
         }
     });
 }
 
 /**
- * Sends a list of all currently banned words to all admins.
+ * Sends the current banned word list to a specific client.
+ * @param {import('ws')} client The WebSocket client.
  */
-function broadcastBannedWordList() {
-    const wordList = JSON.stringify({
+function sendBannedWordList(client) {
+    client.send(JSON.stringify({
         type: 'bannedWordList',
         words: Array.from(bannedWords)
-    });
-    wss.clients.forEach((client) => {
-        if (client.isAdmin && client.readyState === client.OPEN) {
-            client.send(wordList);
-        }
-    });
+    }));
 }
 
 /**
- * Sends a list of all currently banned users to all admins.
+ * MODIFIED: Sends the current banned *username* list to a specific client.
+ * @param {import('ws')} client The WebSocket client.
+ */
+function sendBannedUserList(client) {
+    const users = Array.from(bannedUsernames).map(name => ({ username: name }));
+    client.send(JSON.stringify({
+        type: 'bannedUserList',
+        users: users
+    }));
+}
+
+/**
+ * Broadcasts the updated banned user list to all connected admins.
  */
 function broadcastBannedUserList() {
-    // Convert map to an array for JSON serialization
-    const userList = Array.from(bannedUsers.entries()).map(([ip, data]) => ({
-        ip,
-        username: data.username,
-        banDate: data.banDate
-    }));
-
-    const message = JSON.stringify({
+    const users = Array.from(bannedUsernames).map(name => ({ username: name }));
+    broadcastToAdmins({
         type: 'bannedUserList',
-        users: userList
-    });
-
-    wss.clients.forEach((client) => {
-        if (client.isAdmin && client.readyState === client.OPEN) {
-            client.send(message);
-        }
+        users: users
     });
 }
 
-// WebSocket connection logic
-// We get 'req' (the HTTP request) here to access the IP address
-wss.on('connection', (ws, req) => {
-    
-    // Get the client's IP address. 
-    // 'x-forwarded-for' is important for services like Render (proxies).
-    const ip = req.headers['x-forwarded-for']?.split(',').shift() || req.socket.remoteAddress;
-    
-    // --- IP Ban Check ---
-    if (bannedUsers.has(ip)) {
-        console.log(`Banned IP ${ip} tried to connect.`);
-        // Send the ban message with the link, then close
-        ws.send(JSON.stringify({
-            type: 'banned',
-            link: UNBAN_LINK
-        }));
-        ws.close();
-        return; // Stop processing this connection
-    }
 
-    console.log(`Client connected from IP: ${ip}`);
-    
-    // --- Store user data on the WebSocket object itself ---
-    ws.id = crypto.randomUUID(); // Unique ID for this session
-    ws.ip = ip;
-    ws.username = 'Anonymous';
+// --- WebSocket Connection Handling ---
+
+wss.on('connection', (ws) => {
+    console.log('Client connected');
+
+    // --- MODIFIED: Connection Logic ---
+    // User is NOT logged in yet.
+    // We don't use IP, so no IP ban check.
+
+    // Assign a unique ID for mute/warn tracking
+    ws.id = crypto.randomUUID();
+    ws.isLoggedIn = false; // NEW: User must log in first
     ws.isAdmin = false;
-    warningCounts.set(ws.id, 0);
+    ws.username = 'Anonymous'; // Default until they log in
 
-    // Send a welcome message to the newly connected client
-    ws.send(JSON.stringify({
-        type: 'system',
-        text: 'You are connected! You can set your name in the Settings.'
-    }));
-
-    // Announce the new user to everyone else
-    broadcastToOthers(ws, {
-        type: 'system',
-        text: 'Anonymous has joined the chat.'
-    });
-
-    // Handle messages received from a client
+    // Handle messages from this client
     ws.on('message', (message) => {
         let data;
-        
         try {
-            data = JSON.parse(message.toString());
-        } catch (e) {
-            console.error('Failed to parse message or invalid JSON:', e);
+            data = JSON.parse(message);
+        } catch (error) {
+            console.error('Failed to parse message:', message);
             return;
         }
 
-        // Use a switch to handle different message types
+        // --- MODIFIED: Message routing ---
+        // Allow 'setName' and 'adminLogin' before being logged in
+        if (!ws.isLoggedIn && !['setName', 'adminLogin'].includes(data.type)) {
+            // Ignore messages from non-logged-in users
+            return;
+        }
+
         switch (data.type) {
+            // --- MODIFIED: 'setName' is now the JOIN/LOGIN logic ---
+            case 'setName':
+                const newName = data.name.trim();
+
+                // Validation checks
+                if (!newName || newName.length < 3 || newName.length > 20) {
+                    ws.send(JSON.stringify({ type: 'joinError', text: 'Name must be 3-20 characters.' }));
+                    return;
+                }
+                if (newName.toLowerCase() === 'you') {
+                    ws.send(JSON.stringify({ type: 'joinError', text: 'That name is not allowed.' }));
+                    return;
+                }
+                
+                // Check if banned
+                if (bannedUsernames.has(newName.toLowerCase())) {
+                    ws.send(JSON.stringify({ type: 'banned', link: UNBAN_LINK }));
+                    ws.close();
+                    return;
+                }
+                
+                // Check if name is taken
+                if (isUsernameTaken(newName)) {
+                    ws.send(JSON.stringify({ type: 'joinError', text: 'Username is already taken.' }));
+                    return;
+                }
+
+                // --- Login / Name Change Logic ---
+                if (!ws.isLoggedIn) {
+                    // This is a NEW user joining
+                    ws.username = newName;
+                    ws.isLoggedIn = true;
+                    // Send success message to this client
+                    ws.send(JSON.stringify({ type: 'joinSuccess', text: 'You are now connected.' }));
+                    // Announce join to OTHERS
+                    broadcast({
+                        type: 'system',
+                        text: `${ws.username} has joined the chat.`
+                    });
+                } else {
+                    // This is an EXISTING user changing their name
+                    const oldName = ws.username;
+                    ws.username = newName;
+                    broadcast({
+                        type: 'system',
+                        text: `${oldName} is now known as ${ws.username}.`
+                    });
+                }
+                break;
+
             case 'message':
-                // A standard chat message
-                console.log(`Message from ${ws.username}: ${data.text}`);
-                broadcastToOthers(ws, {
+                // Check for mutes
+                if (mutedUsers.has(ws.id)) {
+                    ws.send(JSON.stringify({ type: 'system', text: 'You are muted and cannot send messages.' }));
+                    break;
+                }
+
+                // Check for banned words
+                const messageText = data.text;
+                const containsBannedWord = Array.from(bannedWords).some(word => messageText.toLowerCase().includes(word.toLowerCase()));
+
+                if (containsBannedWord) {
+                    ws.send(JSON.stringify({ type: 'system', text: 'Your message was blocked for containing a banned word.' }));
+                    // Optional: increase warning count
+                    break;
+                }
+
+                // Broadcast the message
+                broadcast({
                     type: 'message',
                     name: ws.username,
-                    text: data.text
-                });
-                break;
-            
-            case 'setName':
-                // A user is setting their name
-                const oldName = ws.username;
-                ws.username = data.name.trim().slice(0, 25) || 'Anonymous'; // Limit name length
-                console.log(`User ${oldName} is now ${ws.username}`);
-                broadcast({
-                    type: 'system',
-                    text: `${oldName} is now known as ${ws.username}.`
+                    text: messageText
                 });
                 break;
 
             case 'adminLogin':
-                // A user is trying to log in as admin
                 if (data.password === ADMIN_PASSWORD) {
                     ws.isAdmin = true;
-                    console.log(`User ${ws.username} logged in as admin.`);
                     ws.send(JSON.stringify({ type: 'adminSuccess' }));
-                    // Send them the current list of banned words
-                    ws.send(JSON.stringify({
-                        type: 'bannedWordList',
-                        words: Array.from(bannedWords)
-                    }));
-                    // Send them the current list of banned users
-                    broadcastBannedUserList();
+                    // Send them the current moderation state
+                    sendBannedWordList(ws);
+                    sendBannedUserList(ws); // MODIFIED
                 } else {
-                    console.log(`User ${ws.username} failed admin login.`);
                     ws.send(JSON.stringify({ type: 'system', text: 'Admin login failed.' }));
                 }
                 break;
             
-            // --- New Admin Commands ---
-
+            // --- Admin Actions (mostly unchanged, but target 'name') ---
             case 'adminBroadcast':
-                if (ws.isAdmin) {
-                    broadcast({ type: 'system', text: `[ADMIN] ${data.text}` });
-                }
+                if (!ws.isAdmin) break;
+                broadcast({ type: 'system', text: `[BROADCAST] ${data.text}` });
                 break;
-            
+
             case 'adminWarn':
-                if (ws.isAdmin) {
-                    const clientToWarn = findClientByName(data.name);
-                    if (clientToWarn) {
-                        const newCount = (warningCounts.get(clientToWarn.id) || 0) + 1;
-                        warningCounts.set(clientToWarn.id, newCount);
-                        
-                        clientToWarn.send(JSON.stringify({
-                            type: 'system',
-                            text: `You have been warned by an admin. (Warning ${newCount} of 3)`
-                        }));
-                        broadcast({
-                            type: 'system',
-                            text: `${clientToWarn.username} has been warned by an admin.`
-                        });
-                    } else {
-                        ws.send(JSON.stringify({ type: 'system', text: `User '${data.name}' not found.`}));
-                    }
+                if (!ws.isAdmin) break;
+                const clientToWarn = findClientByName(data.name);
+                if (clientToWarn) {
+                    let count = (warningCounts.get(clientToWarn.id) || 0) + 1;
+                    warningCounts.set(clientToWarn.id, count);
+                    clientToWarn.send(JSON.stringify({ type: 'system', text: `[WARNING] You have been warned by an admin. (Total: ${count})` }));
+                    ws.send(JSON.stringify({ type: 'system', text: `Warned ${clientToWarn.username}.` }));
+                } else {
+                    ws.send(JSON.stringify({ type: 'system', text: `User ${data.name} not found.` }));
                 }
                 break;
-            
+
             case 'adminMute':
-                if (ws.isAdmin) {
-                    const clientToMute = findClientByName(data.name);
-                    if (clientToMute) {
-                        mutedUsers.set(clientToMute.id, setTimeout(() => {
-                            mutedUsers.delete(clientToMute.id);
-                            clientToMute.send(JSON.stringify({ type: 'system', text: 'You are no longer muted.' }));
-                        }, 300000)); // 5 minutes
-
-                        clientToMute.send(JSON.stringify({ type: 'system', text: 'You have been muted for 5 minutes.' }));
-                        broadcast({
-                            type: 'system',
-                            text: `${clientToMute.username} has been muted.`
-                        });
-                    } else {
-                        ws.send(JSON.stringify({ type: 'system', text: `User '${data.name}' not found.`}));
+                if (!ws.isAdmin) break;
+                const clientToMute = findClientByName(data.name);
+                if (clientToMute) {
+                    if (mutedUsers.has(clientToMute.id)) {
+                         ws.send(JSON.stringify({ type: 'system', text: `${clientToMute.username} is already muted.` }));
+                         break;
                     }
+                    const muteDuration = 5 * 60 * 1000; // 5 minutes
+                    const timeoutId = setTimeout(() => {
+                        mutedUsers.delete(clientToMute.id);
+                        clientToMute.send(JSON.stringify({ type: 'system', text: 'You are no longer muted.' }));
+                    }, muteDuration);
+                    mutedUsers.set(clientToMute.id, timeoutId);
+                    clientToMute.send(JSON.stringify({ type: 'system', text: '[MOD] You have been muted for 5 minutes.' }));
+                    ws.send(JSON.stringify({ type: 'system', text: `Muted ${clientToMute.username} for 5 minutes.` }));
+                } else {
+                    ws.send(JSON.stringify({ type: 'system', text: `User ${data.name} not found.` }));
                 }
                 break;
 
+            // --- MODIFIED: 'adminBan' ---
             case 'adminBan':
-                if (ws.isAdmin) {
-                    const clientToBan = findClientByName(data.name);
-                    if (clientToBan) {
-                        // Ban their IP and store their username
-                        bannedUsers.set(clientToBan.ip, { 
-                            username: clientToBan.username, 
-                            banDate: Date.now() 
-                        });
-                        console.log(`Banning user ${clientToBan.username} with IP ${clientToBan.ip}`);
-                        
-                        broadcast({
-                            type: 'system',
-                            text: `${clientToBan.username} has been banned.`
-                        });
-                        
-                        clientToBan.send(JSON.stringify({ type: 'banned', link: UNBAN_LINK }));
-                        clientToBan.close();
-                        broadcastBannedUserList(); // Update all admins
-                    } else {
-                        ws.send(JSON.stringify({ type: 'system', text: `User '${data.name}' not found.`}));
-                    }
+                if (!ws.isAdmin) break;
+                const nameToBan = data.name.toLowerCase();
+                if (bannedUsernames.has(nameToBan)) {
+                    ws.send(JSON.stringify({ type: 'system', text: `User ${data.name} is already banned.` }));
+                    break;
+                }
+
+                // Add to ban list
+                bannedUsernames.add(nameToBan);
+                broadcastBannedUserList(); // Update all admins
+
+                // Check if user is online and kick them
+                const clientToBan = findClientByName(data.name);
+                if (clientToBan) {
+                    clientToBan.send(JSON.stringify({ type: 'banned', link: UNBAN_LINK }));
+                    clientToBan.close();
+                    broadcast({ type: 'system', text: `${clientToBan.username} has been banned.` });
+                } else {
+                    // User is offline, but now banned
+                    ws.send(JSON.stringify({ type: 'system', text: `User ${data.name} is now banned (offline).` }));
                 }
                 break;
 
+            // --- MODIFIED: 'adminUnban' ---
             case 'adminUnban':
-                if (ws.isAdmin) {
-                    const ipToUnban = data.ip;
-                    if (bannedUsers.has(ipToUnban)) {
-                        const unbannedUser = bannedUsers.get(ipToUnban);
-                        bannedUsers.delete(ipToUnban);
-                        console.log(`Unbanning user ${unbannedUser.username} with IP ${ipToUnban}`);
-                        
-                        broadcast({
-                            type: 'system',
-                            text: `${unbannedUser.username} (IP: ${ipToUnban}) has been unbanned.`
-                        });
-                        broadcastBannedUserList(); // Update all admins
-                    } else {
-                        ws.send(JSON.stringify({ type: 'system', text: `IP '${ipToUnban}' not found in ban list.`}));
-                    }
+                if (!ws.isAdmin) break;
+                const nameToUnban = data.name.toLowerCase();
+                
+                if (bannedUsernames.has(nameToUnban)) {
+                    bannedUsernames.delete(nameToUnban);
+                    broadcastBannedUserList(); // Update all admins
+                    ws.send(JSON.stringify({ type: 'system', text: `Unbanned user ${data.name}.` }));
+                } else {
+                    ws.send(JSON.stringify({ type: 'system', text: `User ${data.name} is not on the ban list.` }));
                 }
                 break;
 
             case 'adminAddWord':
-                if (ws.isAdmin) {
-                    const word = data.word.toLowerCase().trim();
-                    if (word) {
-                        bannedWords.add(word);
-                        broadcastBannedWordList();
-                    }
-                }
+                if (!ws.isAdmin) break;
+                bannedWords.add(data.word.toLowerCase());
+                broadcastToAdmins({ type: 'bannedWordList', words: Array.from(bannedWords) });
+                ws.send(JSON.stringify({ type: 'system', text: `Added word: ${data.word}` }));
                 break;
-            
+                
             case 'adminRemoveWord':
-                if (ws.isAdmin) {
-                    bannedWords.delete(data.word.toLowerCase().trim());
-                    broadcastBannedWordList();
-                }
+                if (!ws.isAdmin) break;
+                bannedWords.delete(data.word.toLowerCase());
+                broadcastToAdmins({ type: 'bannedWordList', words: Array.from(bannedWords) });
+                ws.send(JSON.stringify({ type: 'system', text: `Removed word: ${data.word}` }));
                 break;
-
-            default:
-                console.warn(`Unknown message type: ${data.type}`);
         }
     });
 
-    // Handle client disconnection
+    // Handle client disconnect
     ws.on('close', () => {
-        console.log(`Client ${ws.username} disconnected`);
-        // Clean up user data
-        warningCounts.delete(ws.id);
-        const muteTimeout = mutedUsers.get(ws.id);
-        if (muteTimeout) {
-            clearTimeout(muteTimeout);
+        console.log('Client disconnected');
+        
+        // Clear any mute timeouts
+        if (mutedUsers.has(ws.id)) {
+            clearTimeout(mutedUsers.get(ws.id));
             mutedUsers.delete(ws.id);
         }
-        
-        broadcast({
-            type: 'system',
-            text: `${ws.username} has left the chat.`
-        });
+        // Clear warning counts
+        warningCounts.delete(ws.id);
+
+        // MODIFIED: Only broadcast leave if they were logged in
+        if (ws.isLoggedIn) {
+            broadcast({
+                type: 'system',
+                text: `${ws.username} has left the chat.`
+            });
+        }
     });
 
-    // Handle WebSocket errors
     ws.on('error', (error) => {
-        console.error('WebSocket Error:', error);
+        console.error('WebSocket Error:', error.message);
     });
 });
 
-// --- Express Server Setup ---
-// Tell Express to serve files from the "public" directory.
-app.use(express.static(path.join(__dirname, 'public')));
+// --- Express Route ---
+// Serve the index.html file
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
-
-// Start the HTTP server
+// --- Start the Server ---
 server.listen(PORT, () => {
-    console.log(`Server started on http://localhost:${PORT}`);
+    console.log(`Server is running on http://localhost:${PORT}`);
 });
