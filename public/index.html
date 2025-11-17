@@ -1,11 +1,9 @@
 <!DOCTYPE html>
-<!-- The 'dark' class will be dynamically added/removed by JS -->
 <html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Node.js Chat</title>
-    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -61,22 +59,29 @@
         }
     </style>
 </head>
-<!-- 
-  The body classes are now minimal. 
-  The dark/light background is applied to the <html> tag by the script.
--->
 <body class="font-sans h-full flex items-center justify-center transition-colors duration-300 bg-gray-100 dark:bg-gray-900">
 
-    <div id="chat-container" class="flex flex-col h-[90vh] w-full max-w-2xl bg-white dark:bg-gray-800 shadow-2xl rounded-lg overflow-hidden">
-        <!-- Header -->
+    <div id="username-modal" class="bg-white dark:bg-gray-800 w-full max-w-sm p-6 rounded-lg shadow-2xl z-20">
+        <h2 class="text-2xl font-bold text-center text-gray-900 dark:text-gray-100 mb-6">Join Chat</h2>
+        <div class="space-y-4">
+            <div>
+                <label for="join-username-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Choose a Username</label>
+                <input type="text" id="join-username-input" placeholder="e.g., ChatUser123" class="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:placeholder-gray-400">
+            </div>
+            <button id="join-chat-btn" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-blue-700 transition-colors">
+                Join
+            </button>
+            <p id="join-error-msg" class="text-sm text-red-500 dark:text-red-400 text-center h-4"></p>
+        </div>
+    </div>
+
+    <div id="chat-container" class="hidden flex flex-col h-[90vh] w-full max-w-2xl bg-white dark:bg-gray-800 shadow-2xl rounded-lg overflow-hidden">
         <header class="bg-blue-600 dark:bg-blue-700 text-white p-4 flex justify-between items-center">
             <h1 class="text-2xl font-bold">Node.js Chat</h1>
             <div class="flex space-x-2">
-                <!-- Admin Button -->
                 <button id="open-admin-btn" class="p-2 rounded-full hover:bg-blue-500 dark:hover:bg-blue-600 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                 </button>
-                <!-- Settings Button (Gear Icon) -->
                 <button id="open-settings-btn" class="p-2 rounded-full hover:bg-blue-500 dark:hover:bg-blue-600 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.096 2.573-1.066z"></path>
@@ -86,15 +91,9 @@
             </div>
         </header>
 
-        <!-- Chat Messages -->
         <main id="chat-messages" class="flex-1 p-4 flex flex-col space-y-3 overflow-y-auto bg-gray-50 dark:bg-gray-700">
-            <!-- Messages will be dynamically injected here -->
-            <div class="system-message">
-                Connecting to chat server...
-            </div>
-        </main>
+            </main>
 
-        <!-- Message Input Form -->
         <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4">
             <form id="message-form" class="flex space-x-3">
                 <input 
@@ -116,7 +115,6 @@
         </footer>
     </div>
 
-    <!-- Settings Modal (Initially Hidden) -->
     <div id="settings-modal" class="fixed inset-0 z-10 overflow-y-auto hidden">
         <div id="settings-overlay" class="fixed inset-0 bg-black bg-opacity-50"></div>
         <div class="relative bg-white dark:bg-gray-800 w-full max-w-md mx-auto my-20 p-6 rounded-lg shadow-xl z-20">
@@ -126,9 +124,7 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
-            <!-- Modal Body -->
             <div class="space-y-6">
-                <!-- Dark Mode Toggle -->
                 <div class="flex items-center justify-between">
                     <span class="text-gray-700 dark:text-gray-300">Dark Mode</span>
                     <label for="dark-mode-toggle" class="relative inline-flex items-center cursor-pointer">
@@ -138,9 +134,8 @@
                         </div>
                     </label>
                 </div>
-                <!-- Set Name -->
                 <div class="space-y-2">
-                    <label for="name-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Your Name</label>
+                    <label for="name-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Change Your Name</label>
                     <div class="flex space-x-2">
                         <input type="text" id="name-input" placeholder="Enter your name" class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:placeholder-gray-400">
                         <button id="save-name-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-blue-700 transition-colors">Save</button>
@@ -150,7 +145,6 @@
         </div>
     </div>
 
-    <!-- Admin Modal (Initially Hidden) -->
     <div id="admin-modal" class="fixed inset-0 z-10 overflow-y-auto hidden">
         <div id="admin-overlay" class="fixed inset-0 bg-black bg-opacity-50"></div>
         <div class="relative bg-white dark:bg-gray-800 w-full max-w-md mx-auto my-20 p-6 rounded-lg shadow-xl z-20">
@@ -160,9 +154,7 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
-            <!-- Modal Body -->
             <div class="space-y-4">
-                <!-- Login View -->
                 <div id="admin-login-view" class="space-y-4">
                     <label for="admin-password-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Admin Password</label>
                     <div class="flex space-x-2">
@@ -171,11 +163,9 @@
                     </div>
                 </div>
                 
-                <!-- Admin Controls View (Initially hidden) -->
                 <div id="admin-controls-view" class="hidden space-y-6">
                     <p class="text-green-600 dark:text-green-400">Admin login successful.</p>
                     
-                    <!-- Broadcast -->
                     <div>
                         <label for="admin-broadcast-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">System Broadcast</label>
                         <div class="flex space-x-2 mt-1">
@@ -184,7 +174,6 @@
                         </div>
                     </div>
 
-                    <!-- User Moderation -->
                     <div>
                         <label for="admin-username-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Moderate User</label>
                         <input type="text" id="admin-username-input" placeholder="Enter username (case-insensitive)" class="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -195,7 +184,6 @@
                         </div>
                     </div>
 
-                    <!-- Word Filter -->
                     <div>
                         <label for="admin-word-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Manage Banned Words</label>
                         <div class="flex space-x-2 mt-1">
@@ -208,11 +196,9 @@
                         </div>
                     </div>
 
-                    <!-- Banned Users List -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Banned Users</label>
                         <div id="banned-users-list" class="mt-2 p-2 h-32 overflow-y-auto bg-gray-100 dark:bg-gray-700 rounded-md text-gray-700 dark:text-gray-300 text-sm space-y-2">
-                            <!-- Banned users will be dynamically added here -->
                             <p>No banned users.</p>
                         </div>
                     </div>
@@ -222,7 +208,6 @@
         </div>
     </div>
 
-    <!-- Banned Message Overlay -->
     <div id="banned-overlay">
         <div class="flex flex-col items-center">
             <svg class="w-16 h-16 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
@@ -235,9 +220,13 @@
     </div>
 
 
-    <!-- Client-side JavaScript -->
     <script>
         // --- DOM Elements ---
+        const usernameModal = document.getElementById('username-modal');
+        const joinUsernameInput = document.getElementById('join-username-input');
+        const joinChatBtn = document.getElementById('join-chat-btn');
+        const joinErrorMsg = document.getElementById('join-error-msg');
+
         const chatContainer = document.getElementById('chat-container');
         const chatMessages = document.getElementById('chat-messages');
         const messageForm = document.getElementById('message-form');
@@ -384,6 +373,7 @@
          */
         function showBannedScreen(link) {
             unbanLink.href = link;
+            usernameModal.style.display = 'none'; // Hide username modal
             chatContainer.style.display = 'none'; // Hide the chat
             bannedOverlay.style.display = 'flex'; // Show the ban message
         }
@@ -408,7 +398,7 @@
 
         /**
          * Updates the list of banned users in the admin panel.
-         * @param {Array<object>} users Array of user objects ({ip, username, banDate}).
+         * @param {Array<object>} users Array of user objects ({username}).
          */
         function updateBannedUserList(users) {
             bannedUsersList.innerHTML = ''; // Clear the list
@@ -422,7 +412,7 @@
                 userEl.classList.add('flex', 'justify-between', 'items-center', 'p-2', 'bg-gray-200', 'dark:bg-gray-600', 'rounded');
                 
                 const userInfo = document.createElement('span');
-                userInfo.textContent = `${user.username} (IP: ${user.ip})`;
+                userInfo.textContent = `${user.username}`;
                 
                 const unbanBtn = document.createElement('button');
                 unbanBtn.textContent = 'Unban';
@@ -430,7 +420,8 @@
                 
                 // Add click listener to send unban message
                 unbanBtn.addEventListener('click', () => {
-                    sendSocketMessage({ type: 'adminUnban', ip: user.ip });
+                    // MODIFIED: Send username, not IP
+                    sendSocketMessage({ type: 'adminUnban', name: user.username });
                 });
 
                 userEl.appendChild(userInfo);
@@ -444,7 +435,7 @@
 
         ws.onopen = () => {
             console.log('Connected to WebSocket server');
-            chatMessages.innerHTML = ''; // Clear "Connecting..."
+            // Don't clear messages, wait for join
         };
 
         ws.onmessage = (event) => {
@@ -452,6 +443,21 @@
             console.log('Message from server:', data);
 
             switch (data.type) {
+                // NEW: Handle successful join
+                case 'joinSuccess':
+                    usernameModal.classList.add('hidden');
+                    chatContainer.classList.remove('hidden');
+                    chatContainer.classList.add('flex'); // Make sure flex is re-added
+                    chatMessages.innerHTML = ''; // Clear "Connecting..."
+                    displaySystemMessage('Welcome to the chat! ' + data.text);
+                    break;
+                
+                // NEW: Handle failed join
+                case 'joinError':
+                    joinErrorMsg.textContent = data.text;
+                    joinChatBtn.disabled = false; // Re-enable join button
+                    break;
+
                 case 'message':
                     displayMessage(data.name, data.text, false);
                     break;
@@ -492,10 +498,33 @@
 
         ws.onerror = (error) => {
             console.error('WebSocket Error:', error);
-            displaySystemMessage('A connection error occurred.');
+            // Show error on the join modal if it's still visible
+            if (!chatContainer.classList.contains('hidden')) {
+                displaySystemMessage('A connection error occurred.');
+            } else {
+                joinErrorMsg.textContent = 'Could not connect to server.';
+            }
         };
 
         // --- Form Submission Handlers ---
+        
+        // NEW: Handle joining the chat
+        joinChatBtn.addEventListener('click', () => {
+            const name = joinUsernameInput.value;
+            if (!name) {
+                joinErrorMsg.textContent = 'Username cannot be empty.';
+                return;
+            }
+            
+            joinErrorMsg.textContent = ''; // Clear error
+            joinChatBtn.disabled = true; // Prevent double-click
+            
+            // This is now the "join" message
+            sendSocketMessage({
+                type: 'setName',
+                name: name
+            });
+        });
         
         // Handle sending a regular chat message
         messageForm.addEventListener('submit', (event) => {
@@ -515,7 +544,7 @@
             messageInput.value = ''; // Clear the input
         });
 
-        // Handle saving the user's name
+        // Handle saving (changing) the user's name
         saveNameBtn.addEventListener('click', () => {
             const name = nameInput.value;
             if (!name) return;
