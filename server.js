@@ -358,7 +358,7 @@ wss.on('connection', (ws) => {
 // --- Express Route ---
 // Serve the index.html file
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
 // --- Start the Server ---
