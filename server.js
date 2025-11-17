@@ -380,7 +380,7 @@ wss.on('connection', (ws) => {
 // Serve the index.html file
 app.get('/', (req, res) => {
     // MODIFIED: Point to the parent directory
-    res.sendFile(path.join(__dirname, '..', 'index.html'));
+    res.sendFile(path.join(__dirname, '..', 'public/index.html'));
 });
 
 // --- Start the Server ---
