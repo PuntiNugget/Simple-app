@@ -55,12 +55,13 @@ function isUsernameTaken(name) {
 /**
  * Broadcasts a JSON message to all connected clients.
  * @param {object} messageObject The object to stringify and send.
+ * @param {import('ws')} [sender] The client who sent the message (to exclude).
  */
-function broadcast(messageObject) {
+function broadcast(messageObject, sender) { // <-- ADD THE 'sender' PARAMETER
     const messageString = JSON.stringify(messageObject);
     wss.clients.forEach((client) => {
-        // MODIFIED: Only broadcast to logged-in users
-        if (client.readyState === client.OPEN && client.isLoggedIn) {
+        // MODIFIED: Only broadcast to logged-in users AND NOT the sender
+        if (client !== sender && client.readyState === client.OPEN && client.isLoggedIn) {
             client.send(messageString);
         }
     });
