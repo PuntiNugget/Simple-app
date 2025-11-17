@@ -20,22 +20,22 @@
     </script>
     <style>
         /* Light mode scrollbar */
-        #chat-messages::-webkit-scrollbar {
+        ::-webkit-scrollbar {
             width: 6px;
         }
-        #chat-messages::-webkit-scrollbar-thumb {
+        ::-webkit-scrollbar-thumb {
             background-color: #cbd5e1; /* gray-300 */
             border-radius: 3px;
         }
-        #chat-messages::-webkit-scrollbar-track {
+        ::-webkit-scrollbar-track {
             background-color: #f1f5f9; /* gray-100 */
         }
 
         /* Dark mode scrollbar */
-        .dark #chat-messages::-webkit-scrollbar-thumb {
+        .dark ::-webkit-scrollbar-thumb {
             background-color: #4b5563; /* gray-600 */
         }
-        .dark #chat-messages::-webkit-scrollbar-track {
+        .dark ::-webkit-scrollbar-track {
             background-color: #374151; /* gray-700 */
         }
 
@@ -57,64 +57,97 @@
             display: none; /* Hidden by default */
             @apply fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50 text-white text-center p-4;
         }
+
+        /* Tab button styles */
+        .tab-btn {
+            @apply flex-1 py-2 px-4 text-center font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600;
+        }
+        .tab-btn.active {
+            @apply text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400;
+        }
     </style>
 </head>
-<body class="font-sans h-full flex items-center justify-center transition-colors duration-300 bg-gray-100 dark:bg-gray-900">
+<body class="font-sans h-full flex flex-row transition-colors duration-300 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
 
-    <div id="username-modal" class="bg-white dark:bg-gray-800 w-full max-w-sm p-6 rounded-lg shadow-2xl z-20">
-        <h2 class="text-2xl font-bold text-center text-gray-900 dark:text-gray-100 mb-6">Join Chat</h2>
-        <div class="space-y-4">
-            <div>
-                <label for="join-username-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Choose a Username</label>
-                <input type="text" id="join-username-input" placeholder="e.g., ChatUser123" class="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:placeholder-gray-400">
+    <div id="sidebar" class="hidden w-64 h-full bg-white dark:bg-gray-800 shadow-lg flex flex-col border-r border-gray-200 dark:border-gray-700">
+        <div class="flex-1 flex flex-col overflow-y-auto">
+            <nav class="flex border-b border-gray-200 dark:border-gray-700">
+                <button id="chat-tab-btn" class="tab-btn active">Chat</button>
+                <button id="hub-tab-btn" class="tab-btn">Hub</button>
+            </nav>
+
+            <div class="flex-1 p-4 overflow-y-auto">
+                <div id="chat-tab-content">
+                    <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Online Users</h3>
+                    <div id="user-list" class="space-y-2">
+                        <p class="text-sm text-gray-500 dark:text-gray-400 italic">Connecting...</p>
+                    </div>
+                </div>
+
+                <div id="hub-tab-content" class="hidden">
+                    <h2 class="text-xl font-semibold mb-2">Hub</h2>
+                    <p class="text-gray-600 dark:text-gray-400">This area is under construction. 🚧</p>
+                </div>
             </div>
-            <button id="join-chat-btn" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-blue-700 transition-colors">
-                Join
+        </div>
+        
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+            <button id="open-settings-btn" class="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.096 2.573-1.066z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <span>Settings</span>
             </button>
-            <p id="join-error-msg" class="text-sm text-red-500 dark:text-red-400 text-center h-4"></p>
+            <button id="open-admin-btn" class="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                <span>Admin Panel</span>
+            </button>
         </div>
     </div>
 
-    <div id="chat-container" class="hidden flex flex-col h-[90vh] w-full max-w-2xl bg-white dark:bg-gray-800 shadow-2xl rounded-lg overflow-hidden">
-        <header class="bg-blue-600 dark:bg-blue-700 text-white p-4 flex justify-between items-center">
-            <h1 class="text-2xl font-bold">Node.js Chat</h1>
-            <div class="flex space-x-2">
-                <button id="open-admin-btn" class="p-2 rounded-full hover:bg-blue-500 dark:hover:bg-blue-600 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+    <main class="flex-1 h-full flex items-center justify-center overflow-y-auto">
+        <div id="username-modal" class="bg-white dark:bg-gray-800 w-full max-w-sm p-6 rounded-lg shadow-2xl z-20">
+            <h2 class="text-2xl font-bold text-center text-gray-900 dark:text-gray-100 mb-6">Join Chat</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="join-username-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Choose a Username</label>
+                    <input type="text" id="join-username-input" placeholder="e.g., ChatUser123" class="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:placeholder-gray-400">
+                </div>
+                <button id="join-chat-btn" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-blue-700 transition-colors">
+                    Join
                 </button>
-                <button id="open-settings-btn" class="p-2 rounded-full hover:bg-blue-500 dark:hover:bg-blue-600 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.096 2.573-1.066z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
-                </button>
+                <p id="join-error-msg" class="text-sm text-red-500 dark:text-red-400 text-center h-4"></p>
             </div>
-        </header>
+        </div>
 
-        <main id="chat-messages" class="flex-1 p-4 flex flex-col space-y-3 overflow-y-auto bg-gray-50 dark:bg-gray-700">
-            </main>
+        <div id="chat-container" class="hidden flex flex-col h-[90vh] w-full max-w-2xl bg-white dark:bg-gray-800 shadow-2xl rounded-lg overflow-hidden">
+            <header class="bg-blue-600 dark:bg-blue-700 text-white p-4 flex justify-between items-center">
+                <h1 class="text-2xl font-bold">Node.js Chat</h1>
+            </header>
 
-        <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4">
-            <form id="message-form" class="flex space-x-3">
-                <input 
-                    type="text" 
-                    id="message-input"
-                    placeholder="Type your message..."
-                    autocomplete="off"
-                    class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 dark:placeholder-gray-400"
-                    required
-                >
-                <button 
-                    type="submit" 
-                    id="send-button"
-                    class="bg-blue-600 dark:bg-blue-700 text-white px-6 py-2 rounded-full font-semibold hover:bg-blue-700 dark:hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200"
-                >
-                    Send
-                </button>
-            </form>
-        </footer>
-    </div>
+            <main id="chat-messages" class="flex-1 p-4 flex flex-col space-y-3 overflow-y-auto bg-gray-50 dark:bg-gray-700">
+                </main>
 
+            <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4">
+                <form id="message-form" class="flex space-x-3">
+                    <input 
+                        type="text" 
+                        id="message-input"
+                        placeholder="Type your message..."
+                        autocomplete="off"
+                        class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 dark:placeholder-gray-400"
+                        required
+                    >
+                    <button 
+                        type="submit" 
+                        id="send-button"
+                        class="bg-blue-600 dark:bg-blue-700 text-white px-6 py-2 rounded-full font-semibold hover:bg-blue-700 dark:hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200"
+                    >
+                        Send
+                    </button>
+                </form>
+            </footer>
+        </div>
+    </main>
+    
     <div id="settings-modal" class="fixed inset-0 z-10 overflow-y-auto hidden">
         <div id="settings-overlay" class="fixed inset-0 bg-black bg-opacity-50"></div>
         <div class="relative bg-white dark:bg-gray-800 w-full max-w-md mx-auto my-20 p-6 rounded-lg shadow-xl z-20">
@@ -162,10 +195,8 @@
                         <button id="admin-login-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-blue-700 transition-colors">Login</button>
                     </div>
                 </div>
-                
                 <div id="admin-controls-view" class="hidden space-y-6">
                     <p class="text-green-600 dark:text-green-400">Admin login successful.</p>
-                    
                     <div>
                         <label for="admin-broadcast-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">System Broadcast</label>
                         <div class="flex space-x-2 mt-1">
@@ -173,7 +204,6 @@
                             <button id="admin-broadcast-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-blue-700 transition-colors">Send</button>
                         </div>
                     </div>
-
                     <div>
                         <label for="admin-username-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Moderate User</label>
                         <input type="text" id="admin-username-input" placeholder="Enter username (case-insensitive)" class="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -183,7 +213,6 @@
                             <button id="admin-ban-btn" class="flex-1 bg-red-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-red-700 transition-colors">Ban</button>
                         </div>
                     </div>
-
                     <div>
                         <label for="admin-word-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Manage Banned Words</label>
                         <div class="flex space-x-2 mt-1">
@@ -195,14 +224,12 @@
                             Banned words will appear here...
                         </div>
                     </div>
-
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Banned Users</label>
                         <div id="banned-users-list" class="mt-2 p-2 h-32 overflow-y-auto bg-gray-100 dark:bg-gray-700 rounded-md text-gray-700 dark:text-gray-300 text-sm space-y-2">
                             <p>No banned users.</p>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
@@ -222,6 +249,7 @@
 
     <script>
         // --- DOM Elements ---
+        const sidebar = document.getElementById('sidebar');
         const usernameModal = document.getElementById('username-modal');
         const joinUsernameInput = document.getElementById('join-username-input');
         const joinChatBtn = document.getElementById('join-chat-btn');
@@ -233,10 +261,17 @@
         const messageInput = document.getElementById('message-input');
         const sendButton = document.getElementById('send-button');
 
+        // --- NEW Sidebar Tab Elements ---
+        const chatTabBtn = document.getElementById('chat-tab-btn');
+        const hubTabBtn = document.getElementById('hub-tab-btn');
+        const chatTabContent = document.getElementById('chat-tab-content');
+        const hubTabContent = document.getElementById('hub-tab-content');
+        const userList = document.getElementById('user-list');
+
         // --- Settings Modal Elements ---
         const settingsModal = document.getElementById('settings-modal');
         const settingsOverlay = document.getElementById('settings-overlay');
-        const openSettingsBtn = document.getElementById('open-settings-btn');
+        const openSettingsBtn = document.getElementById('open-settings-btn'); // Button is moved
         const closeSettingsBtn = document.getElementById('close-settings-btn');
         const nameInput = document.getElementById('name-input');
         const saveNameBtn = document.getElementById('save-name-btn');
@@ -244,7 +279,7 @@
         // --- Admin Modal Elements ---
         const adminModal = document.getElementById('admin-modal');
         const adminOverlay = document.getElementById('admin-overlay');
-        const openAdminBtn = document.getElementById('open-admin-btn');
+        const openAdminBtn = document.getElementById('open-admin-btn'); // Button is moved
         const closeAdminBtn = document.getElementById('close-admin-btn');
         const adminLoginView = document.getElementById('admin-login-view');
         const adminPasswordInput = document.getElementById('admin-password-input');
@@ -304,6 +339,21 @@
         openAdminBtn.addEventListener('click', openAdminModal);
         closeAdminBtn.addEventListener('click', closeAdminModal);
         adminOverlay.addEventListener('click', closeAdminModal);
+
+        // --- NEW: Tab Switching Logic ---
+        chatTabBtn.addEventListener('click', () => {
+            chatTabBtn.classList.add('active');
+            hubTabBtn.classList.remove('active');
+            chatTabContent.classList.remove('hidden');
+            hubTabContent.classList.add('hidden');
+        });
+
+        hubTabBtn.addEventListener('click', () => {
+            hubTabBtn.classList.add('active');
+            chatTabBtn.classList.remove('active');
+            hubTabContent.classList.remove('hidden');
+            chatTabContent.classList.add('hidden');
+        });
 
         
         // --- WebSocket Connection ---
@@ -375,6 +425,7 @@
             unbanLink.href = link;
             usernameModal.style.display = 'none'; // Hide username modal
             chatContainer.style.display = 'none'; // Hide the chat
+            sidebar.style.display = 'none'; // Hide the sidebar
             bannedOverlay.style.display = 'flex'; // Show the ban message
         }
 
@@ -418,9 +469,7 @@
                 unbanBtn.textContent = 'Unban';
                 unbanBtn.classList.add('bg-green-600', 'text-white', 'px-2', 'py-1', 'text-xs', 'rounded', 'hover:bg-green-700');
                 
-                // Add click listener to send unban message
                 unbanBtn.addEventListener('click', () => {
-                    // MODIFIED: Send username, not IP
                     sendSocketMessage({ type: 'adminUnban', name: user.username });
                 });
 
@@ -430,12 +479,33 @@
             });
         }
 
+        /**
+         * NEW: Updates the "Online Users" list in the sidebar.
+         * @param {string[]} usernames Array of username strings.
+         */
+        function updateUserList(usernames) {
+            userList.innerHTML = ''; // Clear the list
+            if (usernames.length === 0) {
+                userList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 italic">No one is online.</p>';
+                return;
+            }
+            
+            // Sort list alphabetically, case-insensitive
+            usernames.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+            
+            usernames.forEach(name => {
+                const userEl = document.createElement('div');
+                userEl.textContent = name;
+                userEl.classList.add('text-gray-700', 'dark:text-gray-300');
+                userList.appendChild(userEl);
+            });
+        }
+
 
         // --- WebSocket Event Handlers ---
 
         ws.onopen = () => {
             console.log('Connected to WebSocket server');
-            // Don't clear messages, wait for join
         };
 
         ws.onmessage = (event) => {
@@ -443,19 +513,20 @@
             console.log('Message from server:', data);
 
             switch (data.type) {
-                // NEW: Handle successful join
+                // MODIFIED: Handle successful join
                 case 'joinSuccess':
                     usernameModal.classList.add('hidden');
                     chatContainer.classList.remove('hidden');
-                    chatContainer.classList.add('flex'); // Make sure flex is re-added
-                    chatMessages.innerHTML = ''; // Clear "Connecting..."
+                    chatContainer.classList.add('flex');
+                    sidebar.classList.remove('hidden'); // <-- SHOW SIDEBAR
+                    sidebar.classList.add('flex');
+                    chatMessages.innerHTML = '';
                     displaySystemMessage('Welcome to the chat! ' + data.text);
                     break;
                 
-                // NEW: Handle failed join
                 case 'joinError':
                     joinErrorMsg.textContent = data.text;
-                    joinChatBtn.disabled = false; // Re-enable join button
+                    joinChatBtn.disabled = false;
                     break;
 
                 case 'message':
@@ -465,40 +536,40 @@
                     displaySystemMessage(data.text);
                     break;
                 case 'adminSuccess':
-                    // Admin login was good!
                     displaySystemMessage('Admin login successful.');
                     adminLoginView.classList.add('hidden');
                     adminControlsView.classList.remove('hidden');
                     break;
                 case 'banned':
-                    // This client is banned!
                     showBannedScreen(data.link);
-                    ws.close(); // Close the connection
+                    ws.close();
                     break;
                 case 'bannedWordList':
-                    // Received an updated list of banned words
                     updateBannedWordList(data.words);
                     break;
                 case 'bannedUserList':
-                    // Received an updated list of banned users
                     updateBannedUserList(data.users);
+                    break;
+                
+                // NEW: Handle user list updates
+                case 'userList':
+                    updateUserList(data.users);
                     break;
             }
         };
 
         ws.onclose = () => {
             console.log('Disconnected from WebSocket server');
-            // Don't show disconnected message if they were banned
             if (bannedOverlay.style.display !== 'flex') {
                 displaySystemMessage('You have been disconnected. Please refresh the page to reconnect.');
                 sendButton.disabled = true;
                 messageInput.disabled = true;
+                userList.innerHTML = '<p class="text-sm text-red-500 dark:text-red-400 italic">Disconnected.</p>';
             }
         };
 
         ws.onerror = (error) => {
             console.error('WebSocket Error:', error);
-            // Show error on the join modal if it's still visible
             if (!chatContainer.classList.contains('hidden')) {
                 displaySystemMessage('A connection error occurred.');
             } else {
@@ -508,7 +579,6 @@
 
         // --- Form Submission Handlers ---
         
-        // NEW: Handle joining the chat
         joinChatBtn.addEventListener('click', () => {
             const name = joinUsernameInput.value;
             if (!name) {
@@ -516,35 +586,29 @@
                 return;
             }
             
-            joinErrorMsg.textContent = ''; // Clear error
-            joinChatBtn.disabled = true; // Prevent double-click
+            joinErrorMsg.textContent = '';
+            joinChatBtn.disabled = true;
             
-            // This is now the "join" message
             sendSocketMessage({
                 type: 'setName',
                 name: name
             });
         });
         
-        // Handle sending a regular chat message
         messageForm.addEventListener('submit', (event) => {
             event.preventDefault();
             const message = messageInput.value;
             if (!message) return;
 
-            // Send the message as a JSON object
             sendSocketMessage({
                 type: 'message',
                 text: message
             });
             
-            // Display my own message immediately
             displayMessage('You', message, true);
-
-            messageInput.value = ''; // Clear the input
+            messageInput.value = '';
         });
 
-        // Handle saving (changing) the user's name
         saveNameBtn.addEventListener('click', () => {
             const name = nameInput.value;
             if (!name) return;
@@ -554,11 +618,9 @@
                 name: name
             });
             
-            // Close the modal after saving
             closeSettingsModal();
         });
 
-        // Handle admin login
         adminLoginBtn.addEventListener('click', () => {
             const password = adminPasswordInput.value;
             if (!password) return;
@@ -567,18 +629,17 @@
                 type: 'adminLogin',
                 password: password
             });
-            adminPasswordInput.value = ''; // Clear password
+            adminPasswordInput.value = '';
         });
         
-        // Handle sending an admin broadcast
         adminBroadcastBtn.addEventListener('click', () => {
             const message = adminBroadcastInput.value;
             if (!message) return;
             sendSocketMessage({ type: 'adminBroadcast', text: message });
-            adminBroadcastInput.value = ''; // Clear input
-        });
+            adminBroadcastInput.value = '';
+F        });
         
-        // --- New Admin Action Handlers ---
+        // --- Admin Action Handlers (Unchanged) ---
 
         adminWarnBtn.addEventListener('click', () => {
             const name = adminUsernameInput.value;
@@ -614,7 +675,6 @@
             sendSocketMessage({ type: 'adminRemoveWord', word: word });
             adminWordInput.value = '';
         });
-
 
     </script>
 </body>
