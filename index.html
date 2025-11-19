@@ -3,58 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Node.js Chat</title>
+    <title>Chet</title>
     
     <link href="/output.css" rel="stylesheet">
-    
-    <style>
-        /* Light mode scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1; /* gray-300 */
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-track {
-            background-color: #f1f5f9; /* gray-100 */
-        }
 
-        /* Dark mode scrollbar */
-        .dark ::-webkit-scrollbar-thumb {
-            background-color: #4b5563; /* gray-600 */
-        }
-        .dark ::-webkit-scrollbar-track {
-            background-color: #374151; /* gray-700 */
-        }
-
-        /* Simple CSS for the toggle switch */
-        .toggle-checkbox:checked + .toggle-label {
-            background-color: #3b82f6; /* blue-500 */
-        }
-        .toggle-checkbox:checked + .toggle-label .toggle-ball {
-            transform: translateX(1.25rem); /* 20px */
-        }
-
-        /* Custom styles for system messages */
-        .system-message {
-            @apply text-center text-sm italic text-gray-500 dark:text-gray-400 my-2;
-        }
-
-        /* Banned message overlay */
-        #banned-overlay {
-            display: none; /* Hidden by default */
-            @apply fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50 text-white text-center p-4;
-        }
-
-        /* Tab button styles */
-        .tab-btn {
-            @apply py-3 px-6 text-center font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-300;
-        }
-        .tab-btn.active {
-            @apply text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400;
-        }
-    </style>
 </head>
 <body class="font-sans h-full flex flex-row transition-colors duration-300 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
 
@@ -100,7 +52,7 @@
         
         <div id="chat-container" class="hidden flex flex-col h-[90vh] w-full max-w-2xl bg-white dark:bg-gray-800 shadow-xl rounded-b-lg overflow-hidden">
             <header class="bg-blue-600 dark:bg-blue-700 text-white p-4 flex justify-between items-center">
-                <h1 class="text-2xl font-bold">Node.js Chat</h1>
+                <h1 class="text-2xl font-bold">Chet</h1>
             </header>
 
             <main id="chat-messages" class="flex-1 p-4 flex flex-col space-y-3 overflow-y-auto bg-gray-50 dark:bg-gray-700">
