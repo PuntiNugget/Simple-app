@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 // --- Admin Password (for demonstration) ---
-const ADMIN_PASSWORD = 'admin-mod-14';
+const ADMIN_PASSWORD = 'ilikefemboysandicannotlieumotherfuckerscantdenywhenagirlwalksinbutshesactuallyaguythatdingalinginyofaceugetsprung';
 const UNBAN_LINK = 'https://forms.gle/cHmhaYYk1eAdFvpJA';
 
 // --- Moderation State (in-memory) ---
