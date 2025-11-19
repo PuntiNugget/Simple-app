@@ -4,20 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Node.js Chat</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            // Enable 'class' strategy for dark mode
-            darkMode: 'class', 
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                },
-            },
-        }
-    </script>
+    
+    <link href="/output.css" rel="stylesheet">
+    
     <style>
         /* Light mode scrollbar */
         ::-webkit-scrollbar {
@@ -118,6 +107,8 @@
                 </main>
 
             <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4">
+                <div id="typing-indicator" class="h-5 text-sm italic text-gray-500 dark:text-gray-400 mb-2"></div>
+                
                 <form id="message-form" class="flex space-x-3">
                     <input 
                         type="text" 
@@ -138,9 +129,26 @@
             </footer>
         </div>
 
-        <div id="hub-main-content" class="hidden w-full max-w-2xl h-[90vh] bg-white dark:bg-gray-800 rounded-b-lg shadow-xl p-6">
-             <h2 class="text-xl font-semibold mb-2">Hub</h2>
-             <p class="text-gray-600 dark:text-gray-400">This area is under construction. 🚧</p>
+        <div id="hub-main-content" class="hidden w-full max-w-2xl h-[90vh] bg-white dark:bg-gray-800 rounded-b-lg shadow-xl p-6 overflow-y-auto">
+             <h2 class="text-2xl font-semibold mb-4">Hub</h2>
+             
+             <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                
+                <a href="#" class="hub-button">
+                    <svg class="w-10 h-10 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                    </svg>
+                    <span class="font-semibold text-sm">App Link 1</span>
+                </a>
+
+                <a href="#" class="hub-button">
+                    <svg class="w-10 h-10 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+                    </svg>
+                    <span class="font-semibold text-sm">Another App</span>
+                </a>
+
+                </div>
         </div>
     </main>
     
@@ -244,6 +252,11 @@
 
 
     <script>
+        // --- NEW: Global state for typing ---
+        let myUsername = '';
+        let typingTimer = null;
+        let isTyping = false;
+
         // --- DOM Elements ---
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('main-content');
@@ -264,6 +277,7 @@
         const hubTabBtn = document.getElementById('hub-tab-btn');
         const hubMainContent = document.getElementById('hub-main-content');
         const userList = document.getElementById('user-list');
+        const typingIndicator = document.getElementById('typing-indicator'); // <-- NEW
 
         // --- Settings Modal Elements ---
         const settingsModal = document.getElementById('settings-modal');
@@ -370,13 +384,6 @@
         }
 
         // --- Helper Functions to display messages ---
-
-        /**
-         * Displays a standard chat message.
-         * @param {string} name The name of the sender.
-         * @param {string} text The message text.
-         * @param {boolean} isMe True if the message is from this client.
-         */
         function displayMessage(name, text, isMe = false) {
             const messageWrapper = document.createElement('div');
             messageWrapper.classList.add('flex', 'flex-col');
@@ -404,10 +411,6 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        /**
-         * Displays a system-level message (e.g., user join/leave).
-         * @param {string} text The message text.
-         */
         function displaySystemMessage(text) {
             const messageElement = document.createElement('div');
             messageElement.textContent = text;
@@ -416,10 +419,6 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
         
-        /**
-         * Shows the banned overlay.
-         * @param {string} link The unban appeal URL.
-         */
         function showBannedScreen(link) {
             unbanLink.href = link;
             mainContent.style.display = 'none'; // Hide the whole main area
@@ -427,10 +426,6 @@
             bannedOverlay.style.display = 'flex'; // Show the ban message
         }
 
-        /**
-         * Updates the list of banned words in the admin panel.
-         * @param {string[]} words Array of banned words.
-         */
         function updateBannedWordList(words) {
             if (words.length === 0) {
                 bannedWordsList.textContent = 'No banned words yet.';
@@ -445,10 +440,6 @@
             });
         }
 
-        /**
-         * Updates the list of banned users in the admin panel.
-         * @param {Array<object>} users Array of user objects ({username}).
-         */
         function updateBannedUserList(users) {
             bannedUsersList.innerHTML = ''; // Clear the list
             if (users.length === 0) {
@@ -477,10 +468,6 @@
             });
         }
 
-        /**
-         * Updates the "Online Users" list in the sidebar.
-         * @param {string[]} usernames Array of username strings.
-         */
         function updateUserList(usernames) {
             userList.innerHTML = ''; // Clear the list
             if (usernames.length === 0) {
@@ -498,9 +485,23 @@
             });
         }
 
+        function updateTypingIndicator(users) {
+            // Filter out our own username
+            const otherTypers = users.filter(name => name !== myUsername);
+
+            if (otherTypers.length === 0) {
+                typingIndicator.textContent = '';
+            } else if (otherTypers.length === 1) {
+                typingIndicator.textContent = `${otherTypers[0]} is typing...`;
+            } else if (otherTypers.length === 2) {
+                typingIndicator.textContent = `${otherTypers[0]} and ${otherTypers[1]} are typing...`;
+            } else {
+                typingIndicator.textContent = 'Several people are typing...';
+            }
+        }
+
 
         // --- WebSocket Event Handlers ---
-
         ws.onopen = () => {
             console.log('Connected to WebSocket server');
         };
@@ -510,21 +511,18 @@
             console.log('Message from server:', data);
 
             switch (data.type) {
-                // MODIFIED: Handle successful join
                 case 'joinSuccess':
                     usernameModal.classList.add('hidden');
                     sidebar.classList.remove('hidden');
                     sidebar.classList.add('flex');
                     
-                    // Show the tab bar and default chat content
                     mainTabs.classList.remove('hidden');
                     mainTabs.classList.add('flex');
                     chatContainer.classList.remove('hidden');
                     chatContainer.classList.add('flex');
 
-                    // Stop centering the content
                     mainContent.classList.remove('justify-center', 'p-4', 'md:p-8');
-                    mainContent.classList.add('pt-8'); // Add padding to the top
+                    mainContent.classList.add('pt-8');
                     
                     chatMessages.innerHTML = '';
                     displaySystemMessage('Welcome to the chat! ' + data.text);
@@ -560,6 +558,10 @@
                 case 'userList':
                     updateUserList(data.users);
                     break;
+                
+                case 'typingUsers':
+                    updateTypingIndicator(data.users);
+                    break;
             }
         };
 
@@ -583,7 +585,6 @@
         };
 
         // --- Form Submission Handlers ---
-        
         joinChatBtn.addEventListener('click', () => {
             const name = joinUsernameInput.value;
             if (!name) {
@@ -591,6 +592,7 @@
                 return;
             }
             
+            myUsername = name;
             joinErrorMsg.textContent = '';
             joinChatBtn.disabled = true;
             
@@ -605,6 +607,12 @@
             const message = messageInput.value;
             if (!message) return;
 
+            clearTimeout(typingTimer);
+            if (isTyping) {
+                sendSocketMessage({ type: 'stopTyping' });
+                isTyping = false;
+            }
+
             sendSocketMessage({
                 type: 'message',
                 text: message
@@ -618,6 +626,7 @@
             const name = nameInput.value;
             if (!name) return;
 
+            myUsername = name;
             sendSocketMessage({
                 type: 'setName',
                 name: name
@@ -644,8 +653,7 @@
             adminBroadcastInput.value = '';
         });
         
-        // --- Admin Action Handlers (Unchanged) ---
-
+        // --- Admin Action Handlers ---
         adminWarnBtn.addEventListener('click', () => {
             const name = adminUsernameInput.value;
             if (!name) return;
@@ -681,6 +689,20 @@
             adminWordInput.value = '';
         });
 
+        // --- NEW: Typing Indicator Logic ---
+        messageInput.addEventListener('keyup', () => {
+            clearTimeout(typingTimer); // Reset the timer
+
+            if (!isTyping) {
+                sendSocketMessage({ type: 'startTyping' });
+                isTyping = true;
+            }
+
+            typingTimer = setTimeout(() => {
+                sendSocketMessage({ type: 'stopTyping' });
+                isTyping = false;
+            }, 2000); // 2-second timeout
+        });
     </script>
 </body>
 </html>
